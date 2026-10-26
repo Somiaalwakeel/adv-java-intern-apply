@@ -1,0 +1,97 @@
+package com.pioneers.service.errors.handlers;
+
+import com.pioneers.service.errors.models.ErrorResponse;
+import com.pioneers.service.errors.models.GenericResponse;
+import com.pioneers.service.utils.validators.ValidationRulesService;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
+import jakarta.validation.ElementKind;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
+
+import static com.pioneers.service.utils.times.TimeHelper.currentTimestamp;
+
+@Slf4j
+@RestControllerAdvice
+public class ValidationExceptionHandler {
+
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ExceptionHandler(exception = ValidationRulesService.RuleException.class)
+    public GenericResponse<ErrorResponse> handleRuleException(final ValidationRulesService.RuleException e) {
+
+        final ErrorResponse errorResponse = new ErrorResponse(e.getMessage(), e.getDescription());
+
+        return new GenericResponse<>(
+                ValidationRulesService.ValidationException.CODE, currentTimestamp(), errorResponse);
+    }
+
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ExceptionHandler(exception = ValidationRulesService.ValidationException.class)
+    public GenericResponse<List<ErrorResponse>> handleValidationException(
+            final ValidationRulesService.ValidationException e) {
+
+        final List<ErrorResponse> errorResponseList = e.getErrors()
+                .entrySet()
+                .stream()
+                .map(ValidationExceptionHandler::toErrorResponse)
+                .toList();
+
+        return new GenericResponse<>(
+                ValidationRulesService.ValidationException.CODE, currentTimestamp(), errorResponseList);
+    }
+
+    private static ErrorResponse toErrorResponse(final Map.Entry<String, String> entry) {
+        return new ErrorResponse(entry.getKey(), entry.getValue());
+    }
+
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ExceptionHandler(exception = MethodArgumentNotValidException.class)
+    public GenericResponse<List<ErrorResponse>> handleMethodArgumentNotValidException(final MethodArgumentNotValidException e) {
+        final List<ErrorResponse> errorResponseList = e.getBindingResult()
+                .getFieldErrors()
+                .stream()
+                .map(this::from)
+                .toList();
+
+        return new GenericResponse<>(9000, currentTimestamp(), errorResponseList);
+    }
+
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ExceptionHandler(exception = ConstraintViolationException.class)
+    public GenericResponse<List<ErrorResponse>> handleConstraintViolationException(final ConstraintViolationException e) {
+        final List<ErrorResponse> errorResponseList = e.getConstraintViolations().stream()
+                .toList()
+                .stream()
+                .map(this::from)
+                .toList();
+        return new GenericResponse<>(9100, currentTimestamp(), errorResponseList);
+    }
+
+    private ErrorResponse from(final ConstraintViolation<?> constraintViolation) {
+        final AtomicReference<String> fieldName = new AtomicReference<>();
+        constraintViolation.getPropertyPath()
+                .forEach(node -> {
+                    if (isNodeKindParameter(node.getKind())) {
+                        fieldName.set(node.getName());
+                    }
+                });
+        return new ErrorResponse(fieldName.get(), constraintViolation.getMessage());
+    }
+
+    private boolean isNodeKindParameter(final ElementKind elementKind) {
+        return ElementKind.PARAMETER.equals(elementKind);
+    }
+
+    private ErrorResponse from(final FieldError fieldError) {
+        return new ErrorResponse(fieldError.getField(), fieldError.getDefaultMessage());
+    }
+}

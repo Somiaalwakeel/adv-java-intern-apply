@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-5.0.xsd">
+
+    <changeSet id="1792864338966-1" author="abdelaziz">
+        <insert tableName="addresses">
+            <column name="id" value="bb0a0fba-0b86-4949-84b0-dddbb614cfc3"/>
+            <column name="country" value="Arab Republic of Egypt"/>
+            <column name="governance" value="Cairo"/>
+            <column name="city" value="New Cairo"/>
+            <column name="street" value="Gamal Abdelnasser"/>
+            <column name="building_number" value="1000"/>
+            <column name="floor_number" value="1"/>
+            <column name="apartment_number" value="1"/>
+        </insert>
+
+        <rollback>
+            <delete tableName="addresses">
+                <where>id = 'bb0a0fba-0b86-4949-84b0-dddbb614cfc3'</where>
+            </delete>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="1792864983557-1" author="abdelaziz">
+        <insert tableName="students">
+            <column name="id" value="32f65752-f4b7-4a3d-9f49-67606cd9a6b3"/>
+            <column name="address_id" value="bb0a0fba-0b86-4949-84b0-dddbb614cfc3"/>
+            <column name="full_name" value="Zizo Said"/>
+            <column name="age" value="25"/>
+            <column name="email" value="zizo.said@techpioneershub.com"/>
+            <column name="password" value="Ix7MfReNpfIpg7xXlZk5bWwTmkV5h64e4AJtiEMtanI="/>
+            <column name="is_login" value="false"/>
+            <column name="score" value="0.0"/>
+            <column name="final_score" value="0.0"/>
+            <column name="created_at" value="2026-10-24 14:35:42.123456"/>
+            <column name="is_archived" value="false"/>
+        </insert>
+
+        <rollback>
+            <!--<delete tableName="students">
+                <where>email = 'zizo.said@techpioneershub.com'</where>
+            </delete>-->
+            <sql>
+                DELETE FROM students WHERE email = 'zizo.said@techpioneershub.com';
+            </sql>
+        </rollback>
+    </changeSet>
+    
+</databaseChangeLog>

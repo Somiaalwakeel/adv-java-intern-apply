@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-5.0.xsd">
+
+
+    <changeSet id="1792874073441-1" author="abdelaziz">
+        <sql>
+            CREATE TYPE public.score_result
+                AS ENUM ('FAIL', 'PASS', 'EXCELLENT');
+        </sql>
+
+        <rollback>
+            <sql>
+                DROP TYPE public.score_result;
+            </sql>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="1792874290273-1" author="abdelaziz">
+        <sql>
+            ALTER TABLE public.students ADD COLUMN score_backup DOUBLE PRECISION;
+        </sql>
+        <sql>
+            UPDATE public.students SET score_backup = score;
+        </sql>
+        <sql>
+            ALTER TABLE students
+            ALTER COLUMN score TYPE public.score_result
+                USING (
+                    CASE
+                        WHEN score IS NULL THEN NULL
+                        WHEN score &lt; 50 THEN 'FAIL'
+                        WHEN score &lt; 85 THEN 'PASS'
+                        ELSE 'EXCELLENT'
+        END
+        )::public.score_result;
+        </sql>
+
+        <rollback>
+            <sql>
+                ALTER TABLE public.students
+                ALTER COLUMN score TYPE DOUBLE PRECISION
+                USING score_backup;
+            </sql>
+            <sql>
+                ALTER TABLE public.students
+                DROP COLUMN score_backup;
+            </sql>
+        </rollback>
+    </changeSet>
+
+    <!--<changeSet id="1792872005568-1" author="abdelaziz">
+        <modifyDataType tableName="students" columnName="score" newDataType="varchar"/>
+        <modifyDataType tableName="students" columnName="final_score" newDataType="varchar"/>
+
+        <rollback>
+            <modifyDataType tableName="students" columnName="score" newDataType="FLOAT"/>
+            <modifyDataType tableName="students" columnName="final_score" newDataType="FLOAT"/>
+        </rollback>
+    </changeSet>-->
+</databaseChangeLog>
